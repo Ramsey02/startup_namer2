@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "30410216277",
+    "project_id": "hellome-b9126",
+    "storage_bucket": "hellome-b9126.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30410216277:android:6b91f7219914e0cc3ad5dc",
+        "android_client_info": {
+          "package_name": "com.technion.android.hello_me"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANUwkBxqW97AbnotUVL86Y9m7FJHPOMCI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
