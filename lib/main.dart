@@ -180,6 +180,28 @@ class _RandomWordsState extends State<RandomWords> {
                   },
                   child: const Text('Login'),
                 ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Handle login logic here
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Sign up is not implemented yet!'),
+                      ),
+                    );
+                  },
+                  onLongPress: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Colors.amberAccent,
+                        content: Text('bro i told you its stil not implemented for now'),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    color: Colors.green,
+                    child: const Text('Sign up'),
+                  ), 
+                )
               ],
             ),
           ),
