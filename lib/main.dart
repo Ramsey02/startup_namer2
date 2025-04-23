@@ -4,30 +4,16 @@ import 'package:firebase_core/firebase_core.dart';
 
 // infinity stones: ios, android, web, windows, macos, linux
 void main() {
-  // runApp(const MyApp());
+  // new
   WidgetsFlutterBinding.ensureInitialized(); 
-  runApp( MyApp());
+
+  runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  final Future<FirebaseApp> _initialization = Firebase.initializeApp(); 
-  // const MyApp({super.key});
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(          // MODIFY with const
-//       title: 'Startup Name Generator' , 
-//       theme: ThemeData(
-//         primarySwatch: Colors.deepPurple,
-//         visualDensity: VisualDensity.adaptivePlatformDensity,
-//         appBarTheme: const AppBarTheme(
-//           backgroundColor: Colors.deepPurple,
-//           foregroundColor: Colors.white, // Text color
-//         ),
-//       ),
-//       home: const RandomWords(),   
-//     );
-//   }
-// }
+// new
+class App extends StatelessWidget { 
+ final Future<FirebaseApp> _initialization = Firebase.initializeApp();
+  App({super.key}); 
  
  @override 
  Widget build(BuildContext context) { 
@@ -50,6 +36,29 @@ class MyApp extends StatelessWidget {
    ); 
  } 
 }
+
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(          // MODIFY with const
+      title: 'Startup Name Generator' , 
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.greenAccent,
+          foregroundColor: Colors.black, // Text color
+        ),
+      ),
+      home: const RandomWords(),
+      
+    );
+  }
+}
+
 class RandomWords extends StatefulWidget {
   const RandomWords({super.key});
 
