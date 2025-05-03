@@ -11,8 +11,7 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
     ndkVersion = "27.0.12077973"
-    
-    
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -28,8 +27,8 @@ android {
         applicationId = "com.technion.android.hello_me"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-build-configuration.
-        minSdk = 21
-        targetSdk = flutter.targetSdkVersion
+        
+        minSdk = 23
         versionCode = flutter.versionCode.toInt()
         versionName = flutter.versionName
         multiDexEnabled = true

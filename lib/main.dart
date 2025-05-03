@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; 
 import 'package:provider/provider.dart';
 
-
+// ////////////////////////////////////////////////////////////////////////////////////////////
 // ChangeNotifier: this class is responsible for managing the favorites 
 class FavoritesNotifier with ChangeNotifier {
   final Set<WordPair> _favorites = {};
@@ -20,7 +20,98 @@ class FavoritesNotifier with ChangeNotifier {
     notifyListeners();
   }
 }
+// ////////////////////////////////////////////////////////////////////////////////////////////
+
+enum Status { unauthenticated, authenticating, authenticated }
+
+class AuthProvider with ChangeNotifier {
+  // the three types of instances we needed to create
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  User? _user;
+  Status _status = Status.unauthenticated;
+
+  AuthProvider() {
+    // Initialize by checking current user
+    _user = _auth.currentUser;
+    _status = _user == null ? Status.unauthenticated : Status.authenticated;
+    
+    // Listen to auth state changes
+    _auth.authStateChanges().listen(_onAuthStateChanged);
+  }
+
+  // Getters
+  User? get user => _user;
+  Status get status => _status;
+  bool get isAuthenticated => _status == Status.authenticated;
+
+  // Auth state changes listener
+  void _onAuthStateChanged(User? firebaseUser) {
+    if (firebaseUser == null) {
+      _user = null;
+      _status = Status.unauthenticated;
+    } else {
+      _user = firebaseUser;
+      _status = Status.authenticated;
+    }
+    notifyListeners();
+  }
+
+  // Sign in 
+  Future<bool> signIn(String email, String password) async {
+    try {
+      _status = Status.authenticating;
+      notifyListeners();
+      
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password
+      );
+      return true;
+    } catch (e) {
+      _status = Status.unauthenticated;
+      notifyListeners();
+      debugPrint('Sign in error: $e');
+      return false;
+    }
+  }
+
+  // Sign up
+  Future<UserCredential?> signUp(String email, String password) async {
+    try {
+      _status = Status.authenticating;
+      notifyListeners();
+      
+      return await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password
+      );
+    } catch (e) {
+      _status = Status.unauthenticated;
+      notifyListeners();
+      debugPrint('Sign up error: $e');
+      return null;
+    }
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      // authStateChanges listener will handle the rest
+      // check if it actually does
+      _user = null;
+      _status = Status.unauthenticated;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Sign out error: $e');
+    }
+  }
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////
 // infinity stones: ios, android, web, windows, macos, linux
+
 void main() async {
   // new
    WidgetsFlutterBinding.ensureInitialized(); 
@@ -35,6 +126,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => FavoritesNotifier()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: App(),
     ),
@@ -77,7 +169,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.deepPurple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.greenAccent,
+        backgroundColor: Colors.purple,
         foregroundColor: Colors.black, // Text color
         ),
       ),
@@ -166,7 +258,7 @@ class _RandomWordsState extends State<RandomWords> {
   );
   }
   
-  void _pushLoginPage() {
+void _pushLoginPage() {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (context) {
@@ -203,44 +295,55 @@ class _RandomWordsState extends State<RandomWords> {
                   obscureText: true,
                 ),
                 const SizedBox(height: 16.0),
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle login logic here
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Login is not implemented yet!'),
-                        showCloseIcon: true,
-                        backgroundColor: Colors.greenAccent,
-
-                      ),
-                    );
+                Consumer<AuthProvider>(
+                  builder: (context, auth, child) {
+                    return auth.status == Status.authenticating
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: () async {
+                              bool success = await context.read<AuthProvider>().signIn(
+                                    emailController.text,
+                                    passwordController.text,
+                                  );
+                              if (success) {
+                                Navigator.of(context).pop(); // Return to main screen
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('There was an error logging into the app'),
+                                  ),
+                                );
+                              }
+                            },
+                            child: const Text('Login'),
+                          );
                   },
-                  child: const Text('Login'),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle login logic here
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sign up is not implemented yet!'),
-                        
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                const SizedBox(height: 8.0),
+                Consumer<AuthProvider>(
+                  builder: (context, auth, child) {
+                    return auth.status == Status.authenticating
+                        ? Container() // Empty container when authenticating
+                        : ElevatedButton(
+                            onPressed: () async {
+                              UserCredential? result = await context.read<AuthProvider>().signUp(
+                                    emailController.text,
+                                    passwordController.text,
+                                  );
+                              if (result != null) {
+                                Navigator.of(context).pop(); // Return to main screen
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('There was an error signing up'),
+                                  ),
+                                );
+                              }
+                            },
+                            child: const Text('Sign up'),
+                          );
                   },
-                  onLongPress: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: Colors.amberAccent,
-                        content: Text('bro i told you its stil not implemented for now'),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    color: Colors.green,
-                    child: const Text('Sign up'),
-                  ), 
-                )
+                ),
               ],
             ),
           ),
@@ -249,24 +352,47 @@ class _RandomWordsState extends State<RandomWords> {
     ),
   );
 }
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(   // NEW from here ...
       appBar: AppBar(  
-        title: const Text('Startup Name Generator'),
+        title: Consumer<AuthProvider>(
+    builder: (context, auth, child) {
+      return auth.isAuthenticated
+          ? Text('Hello, ${auth.user?.email?.split('@')[0] ?? 'User'}')
+          : const Text('Startup Name Generator');
+    },
+  ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.star),
+            icon: const Icon(Icons.star, color: Colors.redAccent,),
             onPressed: _pushSaved,
             tooltip: 'Saved Suggestions',
           ),
-        
-          IconButton(
-            icon: const Icon(Icons.login),
-            onPressed: _pushLoginPage,
-            tooltip: 'Login',
-          ),],
+        Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        // Show login or logout based on authentication state
+        return auth.isAuthenticated
+            ? IconButton(
+                icon: const Icon(Icons.exit_to_app, color: Colors.green),
+                onPressed: () {
+                  context.read<AuthProvider>().signOut();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Successfully logged out'),
+                    ),
+                  );
+                },
+                tooltip: 'Logout',
+              )
+            : IconButton(
+                icon: const Icon(Icons.login),
+                onPressed: _pushLoginPage,
+                tooltip: 'Login',
+              );
+      },
+    ),
+          ],
       ),               
       body: ListView.builder(
       padding: const EdgeInsets.all(16.0),
@@ -287,10 +413,12 @@ class _RandomWordsState extends State<RandomWords> {
             padding: const EdgeInsets.only(left: 16.0),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-          Icon(Icons.favorite, color: Colors.white),
+              children: [
+          Icon(alreadySaved ? Icons.favorite_border : Icons.favorite, color: Colors.white),
           SizedBox(width: 8.0),
-          Text('Add to favorite', style: TextStyle(color: Colors.white)),
+          Text(
+            alreadySaved ? 'Remove from favorites' : 'Add to favorite',
+           style: TextStyle(color: Colors.white)),
               ],
             ),
           ),
