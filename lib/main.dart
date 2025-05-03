@@ -3,22 +3,138 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; 
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// ////////////////////////////////////////////////////////////////////////////////////////////
+
 // ChangeNotifier: this class is responsible for managing the favorites 
 class FavoritesNotifier with ChangeNotifier {
   final Set<WordPair> _favorites = {};
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _user;
+  bool _isLoading = false;
+
   
+  //getter
   Set<WordPair> get favorites => _favorites;
-  
+  bool get isLoading => _isLoading;
+
   void toggleFavorite(WordPair pair) {
     if (_favorites.contains(pair)) {
       _favorites.remove(pair);
+      if (_user != null) {
+        _deleteFavoriteFromFirestore(pair);
+      }
     } else {
       _favorites.add(pair);
+      if (_user != null) {
+        _saveFavoriteToFirestore(pair);
+      }
     }
     notifyListeners();
   }
+
+  void clearFavorites() {
+  _favorites.clear();
+  notifyListeners();
+}
+
+void setUser(User? user) {
+  // If user state is changing (either logging in or out)
+  if (_user != user) {
+    // Clear local favorites first
+    clearFavorites();
+    
+    // Set the new user
+    _user = user;
+    
+    // If user logs in, load their favorites from Firestore
+    if (user != null) {
+      _loadFavoritesFromFirestore();
+    }
+  }
+  notifyListeners();
+}
+
+  Future<void> _loadFavoritesFromFirestore() async {
+    if (_user == null) return;
+    
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Get favorites from Firestore
+      QuerySnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(_user!.uid)
+          .collection('favorites')
+          .get();
+      
+      // Create a temporary set to hold Firestore favorites
+      Set<WordPair> cloudFavorites = {};
+      
+      // Convert Firestore documents to WordPairs
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('first') && data.containsKey('second')) {
+          cloudFavorites.add(
+            WordPair(data['first'], data['second'])
+          );
+        }
+      }
+      
+      // Combine local and cloud favorites
+      _favorites.addAll(cloudFavorites);
+      
+      // If there were local favorites, save them to Firestore
+      Set<WordPair> localOnlyFavorites = {..._favorites};
+      localOnlyFavorites.removeAll(cloudFavorites);
+      
+      for (var pair in localOnlyFavorites) {
+        _saveFavoriteToFirestore(pair);
+      }
+      
+    } catch (e) {
+      debugPrint('Error loading favorites: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveFavoriteToFirestore(WordPair pair) async {
+    if (_user == null) return;
+    
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_user!.uid)
+          .collection('favorites')
+          .doc(pair.asPascalCase)
+          .set({
+            'first': pair.first,
+            'second': pair.second,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      debugPrint('Error saving favorite: $e');
+    }
+  }
+
+  Future<void> _deleteFavoriteFromFirestore(WordPair pair) async {
+    if (_user == null) return;
+    
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_user!.uid)
+          .collection('favorites')
+          .doc(pair.asPascalCase)
+          .delete();
+    } catch (e) {
+      debugPrint('Error deleting favorite: $e');
+    }
+  }
+
 }
 // ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -29,14 +145,20 @@ class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _user;
   Status _status = Status.unauthenticated;
+  final FavoritesNotifier _favoritesNotifier;
 
-  AuthProvider() {
+  AuthProvider(this._favoritesNotifier) {
     // Initialize by checking current user
     _user = _auth.currentUser;
     _status = _user == null ? Status.unauthenticated : Status.authenticated;
     
+    // Update FavoritesNotifier with current user
+    _favoritesNotifier.setUser(_user);
     // Listen to auth state changes
     _auth.authStateChanges().listen(_onAuthStateChanged);
+    
+    // ! check this
+    _favoritesNotifier._loadFavoritesFromFirestore();
   }
 
   // Getters
@@ -53,6 +175,8 @@ class AuthProvider with ChangeNotifier {
       _user = firebaseUser;
       _status = Status.authenticated;
     }
+    
+    _favoritesNotifier.setUser(_user);
     notifyListeners();
   }
 
@@ -116,7 +240,7 @@ void main() async {
   // new
    WidgetsFlutterBinding.ensureInitialized(); 
   await Firebase.initializeApp();
-
+  final favoritesNotifier = FavoritesNotifier();
 // this is to use for auth emulator, might be really helpful in the future
   // await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
 
@@ -125,8 +249,8 @@ void main() async {
     /// can use [MyApp] while mocking the providers
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => FavoritesNotifier()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => favoritesNotifier),
+        ChangeNotifierProvider(create: (_) => AuthProvider(favoritesNotifier)),
       ],
       child: App(),
     ),
@@ -196,6 +320,15 @@ void _pushSaved() {
       MaterialPageRoute<void>(
         builder: (context) {
           final favorites = context.watch<FavoritesNotifier>().favorites;
+          final isLoading = context.watch<FavoritesNotifier>().isLoading;
+          if (isLoading) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Saved Suggestions'),
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
           final tiles = favorites.map(
             (pair) {
               return Dismissible(
@@ -244,6 +377,7 @@ void _pushSaved() {
                 },
                 // This will only be called if confirmDismiss returns true
                 onDismissed: (direction) {
+                  context.read<FavoritesNotifier>().toggleFavorite(pair);
                   // For now, we don't actually delete the item since it's only UI
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
