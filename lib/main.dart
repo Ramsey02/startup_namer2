@@ -1,19 +1,49 @@
 import 'package:english_words/english_words.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; 
+import 'package:provider/provider.dart';
 
+
+// ChangeNotifier: this class is responsible for managing the favorites 
+class FavoritesNotifier with ChangeNotifier {
+  final Set<WordPair> _favorites = {};
+  
+  Set<WordPair> get favorites => _favorites;
+  
+  void toggleFavorite(WordPair pair) {
+    if (_favorites.contains(pair)) {
+      _favorites.remove(pair);
+    } else {
+      _favorites.add(pair);
+    }
+    notifyListeners();
+  }
+}
 // infinity stones: ios, android, web, windows, macos, linux
 void main() async {
   // new
    WidgetsFlutterBinding.ensureInitialized(); 
+  await Firebase.initializeApp();
 
-  runApp( App());
+// this is to use for auth emulator, might be really helpful in the future
+  // await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+
+  runApp(
+    /// Providers are above [MyApp] instead of inside it, so that tests
+    /// can use [MyApp] while mocking the providers
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => FavoritesNotifier()),
+      ],
+      child: App(),
+    ),
+  );
 }
 
 // new
 class App extends StatelessWidget {
   final Future<FirebaseApp> _initialization = Firebase.initializeApp();
-  
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -47,8 +77,8 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.deepPurple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.greenAccent,
-          foregroundColor: Colors.black, // Text color
+        backgroundColor: Colors.greenAccent,
+        foregroundColor: Colors.black, // Text color
         ),
       ),
       home: const RandomWords(),
@@ -66,7 +96,7 @@ class RandomWords extends StatefulWidget {
 
 class _RandomWordsState extends State<RandomWords> {
   final _suggestions = <WordPair>[]; // NEW
-  final _saved = <WordPair>{}; // NEW
+  // final _saved = <WordPair>{}; // now we maintain it in the provider
   final _biggerFont = const TextStyle(fontSize: 18); // NEW
 
   void _pushSaved() {
@@ -75,7 +105,9 @@ class _RandomWordsState extends State<RandomWords> {
       MaterialPageRoute<void>(
         builder: (context) {
           // here we return dissmissible instead of list tile
-          final tiles = _saved.map(
+          // final tiles = _saved.map this was also changed due to adding the provider
+          final favorites = context.watch<FavoritesNotifier>().favorites;
+          final tiles = favorites.map(
             (pair) {
               return Dismissible(
                 key: Key(pair.asPascalCase),
@@ -113,6 +145,7 @@ class _RandomWordsState extends State<RandomWords> {
               );
             },
           );
+          
           // Convert the iterable into a list of widgets
           // and then use ListTile.divideTiles to add dividers between them.
           final divided = tiles.isNotEmpty
@@ -244,7 +277,8 @@ class _RandomWordsState extends State<RandomWords> {
         final index = i ~/ 2;
         if (index >= _suggestions.length) {
           _suggestions.addAll(generateWordPairs().take(10));}
-        final alreadySaved = _saved.contains(_suggestions[index]); // NEW
+        // final alreadySaved = _saved.contains(_suggestions[index]); // this needed to be changed since now i maintain it in the provider
+        final alreadySaved = context.watch<FavoritesNotifier>().favorites.contains(_suggestions[index]);
         return Dismissible(
           key: Key(_suggestions[index].asPascalCase),
           background: Container(
@@ -262,11 +296,7 @@ class _RandomWordsState extends State<RandomWords> {
           ),
           direction: DismissDirection.startToEnd,
           confirmDismiss: (direction) async {
-            setState(() {
-              if (!alreadySaved) {
-          _saved.add(_suggestions[index]);
-              }
-            });
+            context.read<FavoritesNotifier>().toggleFavorite(_suggestions[index]);
             return false; // Prevents the item from being dismissed
           },
           child: ListTile(
@@ -277,13 +307,7 @@ class _RandomWordsState extends State<RandomWords> {
               semanticLabel: alreadySaved ? 'Remove from saved' : 'Save',
             ),
             onTap: () {
-              setState(() {
-          if (alreadySaved) {
-            _saved.remove(_suggestions[index]);
-          } else {
-            _saved.add(_suggestions[index]);
-          }
-              });
+              context.read<FavoritesNotifier>().toggleFavorite(_suggestions[index]);
             },
           ),
         );
