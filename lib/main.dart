@@ -3,38 +3,62 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; 
 
 // infinity stones: ios, android, web, windows, macos, linux
-void main() {
+void main() async {
   // new
-  WidgetsFlutterBinding.ensureInitialized(); 
+  await WidgetsFlutterBinding.ensureInitialized(); 
 
-  runApp(const MyApp());
+  runApp( App());
 }
 
 // new
-class App extends StatelessWidget { 
- final Future<FirebaseApp> _initialization = Firebase.initializeApp();
-  App({super.key}); 
- 
- @override 
- Widget build(BuildContext context) { 
-   return FutureBuilder( 
-     future: _initialization, 
-     builder: (context, snapshot) { 
-       if (snapshot.hasError) { 
-         return Scaffold( 
-             body: Center( 
-                 child: Text(snapshot.error.toString(), 
-                     textDirection: TextDirection.ltr))); 
-       } 
- 
-       if (snapshot.connectionState == ConnectionState.done) { 
-         return MyApp(); 
-       } 
- 
-       return Center(child: CircularProgressIndicator()); 
-     }, 
-   ); 
- } 
+class App extends StatelessWidget {
+  final Future<FirebaseApp> _initialization = Firebase.initializeApp();
+  @override 
+Widget build(BuildContext context) { 
+  return FutureBuilder( 
+    future: _initialization, 
+    builder: (context, snapshot) { 
+      if (snapshot.hasError) { 
+        return MaterialApp(  // Add this
+          home: Scaffold( 
+            body: Center( 
+              child: Text(snapshot.error.toString(), 
+                textDirection: TextDirection.ltr)
+            ) 
+          )
+        ); 
+      } 
+
+      if (snapshot.connectionState == ConnectionState.done) { 
+        return MyApp(); 
+      } 
+
+      return MaterialApp(  // Add this
+        home: Scaffold(  // Add this
+          body: Center(child: CircularProgressIndicator())
+        )
+      );
+    }, 
+  ); 
+}
+  // @override
+  // Widget build(BuildContext context) {
+  //   return FutureBuilder(
+  //     future: _initialization,
+  //     builder: (context, snapshot) {
+  //       if (snapshot.hasError) {
+  //         return Scaffold(
+  //           body: Center(
+  //             child: Text(snapshot.error.toString(),
+  //               textDirection: TextDirection.ltr)));
+  //       }
+  //       if (snapshot.connectionState == ConnectionState.done) {
+  //         return MyApp();
+  //       }
+  //       return Center(child: CircularProgressIndicator());
+  //     },
+  //   );
+  // }
 }
 
 
@@ -178,6 +202,9 @@ class _RandomWordsState extends State<RandomWords> {
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Login is not implemented yet!'),
+                        showCloseIcon: true,
+                        backgroundColor: Colors.greenAccent,
+
                       ),
                     );
                   },
@@ -189,6 +216,8 @@ class _RandomWordsState extends State<RandomWords> {
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Sign up is not implemented yet!'),
+                        
+                        duration: Duration(seconds: 2),
                       ),
                     );
                   },
