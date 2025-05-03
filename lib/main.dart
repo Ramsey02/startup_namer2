@@ -191,13 +191,10 @@ class _RandomWordsState extends State<RandomWords> {
   // final _saved = <WordPair>{}; // now we maintain it in the provider
   final _biggerFont = const TextStyle(fontSize: 18); // NEW
 
-  void _pushSaved() {
-  Navigator.of(context).push(
-    // Add lines from here...
+void _pushSaved() {
+    Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) {
-          // here we return dissmissible instead of list tile
-          // final tiles = _saved.map this was also changed due to adding the provider
           final favorites = context.watch<FavoritesNotifier>().favorites;
           final tiles = favorites.map(
             (pair) {
@@ -216,30 +213,55 @@ class _RandomWordsState extends State<RandomWords> {
                     ],
                   ),
                 ),
+                // adding the AlertDialog implementation
                 confirmDismiss: (direction) async {
+                  // Show an AlertDialog asking for confirmation
+                  return await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext dialogContext) {
+                      return AlertDialog(
+                        title: const Text('Delete Suggestion'),
+                        content: Text(
+                          'Are you sure you want to delete ${pair.asPascalCase} from your saved suggestions?'
+                        ),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop(false); // User pressed No
+                            },
+                            child: const Text('No'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop(true); // User pressed Yes
+                            },
+                            child: const Text('Yes'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                // This will only be called if confirmDismiss returns true
+                onDismissed: (direction) {
+                  // For now, we don't actually delete the item since it's only UI
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Deletion is not implemented yet'),
-                    
+                      content: Text('${pair.asPascalCase} deletion confirmed, but not implemented yet'),
                       duration: const Duration(seconds: 2),
-
                     ),
                   );
-                  return false; // Prevents the item from being dismissed
                 },
                 child: ListTile(
                   title: Text(
                     pair.asPascalCase,
                     style: _biggerFont,
-                    
                   ),
                 ),
               );
             },
           );
           
-          // Convert the iterable into a list of widgets
-          // and then use ListTile.divideTiles to add dividers between them.
           final divided = tiles.isNotEmpty
               ? ListTile.divideTiles(
                   context: context,
@@ -254,10 +276,10 @@ class _RandomWordsState extends State<RandomWords> {
             body: ListView(children: divided),
           );
         },
-      ), // ...to here.
-  );
+      ),
+    );
   }
-  
+
 void _pushLoginPage() {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
