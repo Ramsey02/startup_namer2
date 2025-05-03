@@ -1,6 +1,10 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+ import 'services/auth_service.dart'; // Uncomment and fix the path if needed
+import 'screens/login_screen.dart';
 
 // infinity stones: ios, android, web, windows, macos, linux
 void main() async {
@@ -37,22 +41,20 @@ class App extends StatelessWidget {
 
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(          // MODIFY with const
-      title: 'Startup Name Generator' , 
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.greenAccent,
-          foregroundColor: Colors.black, // Text color
+    return ChangeNotifierProvider(
+      create: (context) => AuthService(),
+      child: MaterialApp(
+        title: 'Startup Name Generator',
+        theme: ThemeData(
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.deepPurple,
+            foregroundColor: Colors.white,
+          ),
         ),
+        home: RandomWords(),
       ),
-      home: const RandomWords(),
-      
     );
   }
 }
