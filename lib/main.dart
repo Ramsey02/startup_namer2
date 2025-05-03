@@ -5,7 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 // infinity stones: ios, android, web, windows, macos, linux
 void main() async {
   // new
-  await WidgetsFlutterBinding.ensureInitialized(); 
+   WidgetsFlutterBinding.ensureInitialized(); 
 
   runApp( App());
 }
@@ -13,52 +13,26 @@ void main() async {
 // new
 class App extends StatelessWidget {
   final Future<FirebaseApp> _initialization = Firebase.initializeApp();
-  @override 
-Widget build(BuildContext context) { 
-  return FutureBuilder( 
-    future: _initialization, 
-    builder: (context, snapshot) { 
-      if (snapshot.hasError) { 
-        return MaterialApp(  // Add this
-          home: Scaffold( 
-            body: Center( 
-              child: Text(snapshot.error.toString(), 
-                textDirection: TextDirection.ltr)
-            ) 
-          )
-        ); 
-      } 
-
-      if (snapshot.connectionState == ConnectionState.done) { 
-        return MyApp(); 
-      } 
-
-      return MaterialApp(  // Add this
-        home: Scaffold(  // Add this
-          body: Center(child: CircularProgressIndicator())
-        )
-      );
-    }, 
-  ); 
-}
-  // @override
-  // Widget build(BuildContext context) {
-  //   return FutureBuilder(
-  //     future: _initialization,
-  //     builder: (context, snapshot) {
-  //       if (snapshot.hasError) {
-  //         return Scaffold(
-  //           body: Center(
-  //             child: Text(snapshot.error.toString(),
-  //               textDirection: TextDirection.ltr)));
-  //       }
-  //       if (snapshot.connectionState == ConnectionState.done) {
-  //         return MyApp();
-  //       }
-  //       return Center(child: CircularProgressIndicator());
-  //     },
-  //   );
-  // }
+  
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _initialization,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Text(snapshot.error.toString(), textDirection: TextDirection.ltr),
+            ),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.done) {
+          return MyApp();
+        }
+        return Center(child: CircularProgressIndicator());
+      },
+    );
+  }
 }
 
 
