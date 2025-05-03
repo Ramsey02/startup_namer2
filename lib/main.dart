@@ -97,8 +97,10 @@ class _RandomWordsState extends State<RandomWords> {
                 confirmDismiss: (direction) async {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('“Deletion is not implemented yet'),
+                      content: Text('Deletion is not implemented yet'),
+                    
                       duration: const Duration(seconds: 2),
+
                     ),
                   );
                   return false; // Prevents the item from being dismissed
@@ -107,6 +109,7 @@ class _RandomWordsState extends State<RandomWords> {
                   title: Text(
                     pair.asPascalCase,
                     style: _biggerFont,
+                    
                   ),
                 ),
               );
