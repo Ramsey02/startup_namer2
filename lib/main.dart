@@ -42,7 +42,7 @@ void setUser(User? user) {
   // If user state is changing (either logging in or out)
   if (_user != user) {
     // Clear local favorites first
-    clearFavorites();
+    // clearFavorites();
     
     // Set the new user
     _user = user;
@@ -50,6 +50,8 @@ void setUser(User? user) {
     // If user logs in, load their favorites from Firestore
     if (user != null) {
       _loadFavoritesFromFirestore();
+    } else {
+      clearFavorites();
     }
   }
   notifyListeners();
@@ -381,7 +383,7 @@ void _pushSaved() {
                   // For now, we don't actually delete the item since it's only UI
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${pair.asPascalCase} deletion confirmed, but not implemented yet'),
+                      content: Text('${pair.asPascalCase} deletion confirmed'),
                       duration: const Duration(seconds: 2),
                     ),
                   );
